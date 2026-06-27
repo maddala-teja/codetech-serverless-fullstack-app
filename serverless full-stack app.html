@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Serverless Notes - Fixed</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
+
+        .dark {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f1f5f9;
+            --border: #334155;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; transition: background 0.3s, color 0.3s; }
+
+        body { background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+
+        .container { max-width: 700px; margin: auto; padding: 40px 20px; }
+
+        .card { 
+            background: var(--card); 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .hidden { display: none !important; }
+
+        h1 { font-size: 2rem; margin-bottom: 10px; text-align: center; color: var(--primary); }
+        h2 { margin-bottom: 15px; }
+        
+        input, textarea {
+            width: 100%; padding: 12px; margin: 10px 0;
+            border-radius: 8px; border: 1px solid var(--border);
+            background: var(--bg); color: var(--text);
+            font-size: 1rem;
+        }
+
+        .toolbar { display: flex; gap: 5px; margin-bottom: 5px; }
+
+        button {
+            padding: 10px 20px; border: none; border-radius: 8px;
+            background: var(--primary); color: white;
+            cursor: pointer; font-weight: 600; font-size: 0.9rem;
+        }
+
+        button:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        button.secondary { background: #64748b; }
+        button.danger { background: #ef4444; }
+        button.small { padding: 5px 10px; font-size: 0.75rem; }
+        button.outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+
+        .note {
+            padding: 20px; border-radius: 10px; border: 1px solid var(--border);
+            margin-top: 15px; position: relative; background: var(--card);
+        }
+
+        .note-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 10px; }
+
+        .note-content { white-space: pre-wrap; font-size: 1rem; }
+        
+        u { text-decoration: underline; text-decoration-color: var(--primary); text-decoration-thickness: 2px; }
+
+        .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+
+        .account-switcher {
+            display: flex; gap: 10px; justify-content: center; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;
+        }
+        .acc-circle {
+            width: 50px; height: 50px; border-radius: 50%; background: var(--primary);
+            color: white; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-weight: bold; text-transform: uppercase; font-size: 1.2rem;
+            position: relative;
+        }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .stat-item { background: var(--bg); padding: 15px; border-radius: 8px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- WELCOME SCREEN -->
+    <div id="screen-welcome" class="card">
+        <h1>🚀 Serverless Cloud</h1>
+        <p style="text-align:center; margin-bottom:20px;">Securely store notes in your browser.</p>
+        <button style="width:100%; margin-bottom:10px;" onclick="showScreen('screen-login')">Login</button>
+        <button style="width:100%;" class="secondary" onclick="showScreen('screen-register')">Create New Account</button>
+        
+        <div id="recent-accounts-section" class="hidden">
+            <p style="text-align:center; margin-top:15px; font-size: 0.8rem; color: gray;">Quick Switch Account</p>
+            <div class="account-switcher" id="accSwitcher"></div>
+        </div>
+    </div>
+
+    <!-- REGISTER SCREEN -->
+    <div id="screen-register" class="card hidden">
+        <h2>Join Now</h2>
+        <input id="regUser" placeholder="Choose a Username">
+        <input id="regPass" type="password" placeholder="Choose a Password">
+        <button style="width:100%;" onclick="handleRegister()">Register</button>
+        <button style="width:100%; margin-top:10px;" class="secondary" onclick="showScreen('screen-welcome')">Back</button>
+    </div>
+
+    <!-- LOGIN SCREEN -->
+    <div id="screen-login" class="card hidden">
+        <h2>Welcome Back</h2>
+        <input id="loginUser" placeholder="Username">
+        <input id="loginPass" type="password" placeholder="Password">
+        <button style="width:100%;" onclick="handleLogin()">Sign In</button>
+        <button style="width:100%; margin-top:10px;" class="secondary" onclick="showScreen('screen-welcome')">Back</button>
+    </div>
+
+    <!-- DASHBOARD (NOTES VIEW) -->
+    <div id="screen-dashboard" class="hidden">
+        <div class="nav-header">
+            <h2 id="welcomeMsg"></h2>
+            <div>
+                <button class="small secondary" onclick="toggleDark()">🌓</button>
+                <button class="small outline" onclick="showProfile()">👤 Profile</button>
+                <button class="small danger" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 id="formTitle">Create Note</h3>
+            <input id="noteTitle" placeholder="Title of your note">
+            <div class="toolbar">
+                <button class="small secondary" onclick="formatText('u')"><u>Underline</u></button>
+            </div>
+            <textarea id="noteContent" rows="5" placeholder="Write your content here..."></textarea>
+            <input type="hidden" id="editId">
+            <button id="saveBtn" style="width:100%;" onclick="saveNote()">Save Note</button>
+            <button id="cancelBtn" style="width:100%; margin-top:5px;" class="secondary hidden" onclick="resetForm()">Cancel Edit</button>
+        </div>
+
+        <div class="card">
+            <input id="search" placeholder="Search notes..." onkeyup="loadNotes()">
+            <div id="notesList"></div>
+        </div>
+    </div>
+
+    <!-- PROFILE VIEW -->
+    <div id="screen-profile" class="card hidden">
+        <h2>User Profile</h2>
+        <div class="stats-grid">
+            <div class="stat-item">
+                <small>Username</small>
+                <p style="font-weight: bold; font-size: 1.2rem;" id="prof-username">-</p>
+            </div>
+            <div class="stat-item">
+                <small>Total Notes</small>
+                <p style="font-weight: bold; font-size: 1.2rem;" id="prof-count">0</p>
+            </div>
+        </div>
+        <div style="margin-top: 20px;">
+            <button style="width: 100%;" onclick="downloadBackup()">📥 Backup All Notes (.json)</button>
+            <button style="width: 100%; margin-top: 10px;" class="secondary" onclick="showScreen('screen-dashboard')">← Back to Notes</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let currentUser = "";
+    const screens = ['screen-welcome', 'screen-register', 'screen-login', 'screen-dashboard', 'screen-profile'];
+
+    function showScreen(id) {
+        screens.forEach(s => document.getElementById(s).classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+        if (id === 'screen-welcome') updateAccountSwitcher();
+    }
+
+    function updateRecentAccounts(user) {
+        let recents = JSON.parse(localStorage.getItem("recent_users") || "[]");
+        recents = recents.filter(u => u !== user);
+        recents.unshift(user);
+        if (recents.length > 3) recents.pop();
+        localStorage.setItem("recent_users", JSON.stringify(recents));
+    }
+
+    function updateAccountSwitcher() {
+        const recents = JSON.parse(localStorage.getItem("recent_users") || "[]");
+        const container = document.getElementById("accSwitcher");
+        const section = document.getElementById("recent-accounts-section");
+        if (recents.length === 0) { section.classList.add("hidden"); return; }
+        section.classList.remove("hidden");
+        container.innerHTML = "";
+        recents.forEach(u => {
+            const div = document.createElement("div");
+            div.className = "acc-circle";
+            div.innerText = u.charAt(0);
+            div.onclick = () => { document.getElementById("loginUser").value = u; showScreen('screen-login'); };
+            container.appendChild(div);
+        });
+    }
+
+    function handleRegister() {
+        const u = document.getElementById("regUser").value.trim();
+        const p = document.getElementById("regPass").value;
+        if (!u || !p) return alert("Fill all fields");
+        if (localStorage.getItem("user_" + u)) return alert("Username taken");
+        localStorage.setItem("user_" + u, p);
+        showScreen('screen-login');
+    }
+
+    function handleLogin() {
+        const u = document.getElementById("loginUser").value.trim();
+        const p = document.getElementById("loginPass").value;
+        if (localStorage.getItem("user_" + u) === p) {
+            currentUser = u;
+            sessionStorage.setItem("sessionUser", u);
+            updateRecentAccounts(u);
+            initDashboard();
+        } else { alert("Wrong credentials"); }
+    }
+
+    function logout() { sessionStorage.clear(); location.reload(); }
+
+    function initDashboard() {
+        document.getElementById("welcomeMsg").innerText = `Hi, ${currentUser}`;
+        showScreen('screen-dashboard');
+        loadNotes();
+    }
+
+    function showProfile() {
+        const notes = JSON.parse(localStorage.getItem("notes_" + currentUser) || "[]");
+        document.getElementById("prof-username").innerText = currentUser;
+        document.getElementById("prof-count").innerText = notes.length;
+        showScreen('screen-profile');
+    }
+
+    function saveNote() {
+        const title = document.getElementById("noteTitle").value;
+        const content = document.getElementById("noteContent").value;
+        const editId = document.getElementById("editId").value;
+        if (!title || !content) return alert("Empty fields");
+        let notes = JSON.parse(localStorage.getItem("notes_" + currentUser) || "[]");
+        if (editId) {
+            const idx = notes.findIndex(n => n.id == editId);
+            notes[idx].title = title; notes[idx].content = content;
+        } else {
+            notes.unshift({ id: Date.now(), title, content, date: new Date().toLocaleDateString() });
+        }
+        localStorage.setItem("notes_" + currentUser, JSON.stringify(notes));
+        resetForm(); loadNotes();
+    }
+
+    function loadNotes() {
+        const notes = JSON.parse(localStorage.getItem("notes_" + currentUser) || "[]");
+        const query = document.getElementById("search").value.toLowerCase();
+        const list = document.getElementById("notesList");
+        list.innerHTML = "";
+        notes.filter(n => n.title.toLowerCase().includes(query)).forEach(n => {
+            const div = document.createElement("div");
+            div.className = "note";
+            div.innerHTML = `
+                <div class="note-header"><strong>${n.title}</strong><small>${n.date}</small></div>
+                <div class="note-content">${n.content}</div>
+                <div style="margin-top:15px; display:flex; gap:5px;">
+                    <button class="small secondary" onclick="prepareEdit(${n.id})">Edit</button>
+                    <button class="small secondary" onclick="downloadSingle(${n.id})">Download</button>
+                    <button class="small danger" onclick="deleteNote(${n.id})">Delete</button>
+                </div>`;
+            list.appendChild(div);
+        });
+    }
+
+    function prepareEdit(id) {
+        const notes = JSON.parse(localStorage.getItem("notes_" + currentUser) || "[]");
+        const note = notes.find(n => n.id == id);
+        if (!note) return;
+        document.getElementById("noteTitle").value = note.title;
+        document.getElementById("noteContent").value = note.content;
+        document.getElementById("editId").value = note.id;
+        document.getElementById("cancelBtn").classList.remove("hidden");
+    }
+
+    function resetForm() {
+        document.getElementById("noteTitle").value = "";
+        document.getElementById("noteContent").value = "";
+        document.getElementById("editId").value = "";
+        document.getElementById("cancelBtn").classList.add("hidden");
+    }
+
+    function deleteNote(id) {
+        if (!confirm("Delete?")) return;
+        let notes = JSON.parse(localStorage.getItem("notes_" + currentUser) || "[]");
+        localStorage.setItem("notes_" + currentUser, JSON.stringify(notes.filter(n => n.id != id)));
+        loadNotes();
+    }
+
+    function formatText(tag) {
+        const area = document.getElementById("noteContent");
+        const start = area.selectionStart;
+        const end = area.selectionEnd;
+        if (start === end) return;
+        const text = area.value;
+        area.value = text.substring(0, start) + `<${tag}>` + text.substring(start, end) + `</${tag}>` + text.substring(end);
+    }
+
+    function downloadSingle(id) {
+        const notes = JSON.parse(localStorage.getItem("notes_" + currentUser) || "[]");
+        const n = notes.find(note => note.id == id);
+        if (!n) return;
+
+        const cleanContent = n.content.replace(/<\/?[^>]+(>|$)/g, "");
+        const text = `TITLE: ${n.title}\nDATE: ${n.date}\n\n${cleanContent}`;
+        
+        const blob = new Blob([text], { type: "text/plain" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        
+        a.style.display = "none";
+        a.href = url;
+        a.download = n.title.replace(/[^a-z0-9]/gi, '_') + ".txt";
+        
+        document.body.appendChild(a);
+        a.click();
+        
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    }
+
+    function downloadBackup() {
+        const data = localStorage.getItem("notes_" + currentUser);
+        if (!data || data === "[]") return alert("Nothing to download");
+
+        const blob = new Blob([data], { type: "application/json" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        
+        a.style.display = "none";
+        a.href = url;
+        a.download = `backup_${currentUser}.json`;
+        
+        document.body.appendChild(a);
+        a.click();
+        
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    }
+
+    function toggleDark() { document.body.classList.toggle("dark"); }
+
+    window.onload = () => {
+        updateAccountSwitcher();
+        const saved = sessionStorage.getItem("sessionUser");
+        if (saved) { currentUser = saved; initDashboard(); }
+    };
+</script>
+</body>
+</html>
